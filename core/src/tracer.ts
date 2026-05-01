@@ -15,16 +15,35 @@ export function createHttpTracer(baseUrl: string): Tracer {
   const root = baseUrl.replace(/\/$/, '');
 
   async function request(path: string, method: string, body?: unknown): Promise<Response> {
-    const res = await fetch(`${root}${path}`, {
-      method,
-      headers: body ? { 'content-type': 'application/json' } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`dashboard ${method} ${path} failed: ${res.status} ${text}`);
+    const headers: Record<string, string> = { connection: 'close' };
+    if (body) headers['content-type'] = 'application/json';
+
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(`${root}${path}`, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`dashboard ${method} ${path} failed: ${res.status} ${text}`);
+        }
+        return res;
+      } catch (err) {
+        lastErr = err;
+        // Retry on transient network errors (socket closed, ECONNRESET, etc.)
+        const cause = (err as { cause?: { code?: string } }).cause;
+        const code = cause?.code;
+        if (code === 'UND_ERR_SOCKET' || code === 'ECONNRESET' || code === 'ECONNREFUSED') {
+          await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
+          continue;
+        }
+        throw err;
+      }
     }
-    return res;
+    throw lastErr;
   }
 
   return {
