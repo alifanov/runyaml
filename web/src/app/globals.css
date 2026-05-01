@@ -186,10 +186,9 @@ a:hover { text-decoration: underline; }
   color: var(--text-dim);
   font-size: 14px;
   line-height: 1;
-  transition: transform 0.12s ease;
 }
 .node-card:not([open]) > summary > .node-card-header::before {
-  transform: translateY(-50%) rotate(-90deg);
+  content: '▶';
 }
 .node-card > summary:hover .node-card-header::before {
   color: var(--text);
