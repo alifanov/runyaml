@@ -1,0 +1,45 @@
+# plan → implement → validate → build
+#
+# Extends plan-implement-validate with a build step. After validation,
+# opencode attempts to build the project and iterates on errors until
+# it succeeds (or gives up after a few tries).
+#
+# Run:
+#   pnpm runyaml examples/plan-implement-validate-build.yaml "Add dark mode to the settings page"
+#
+# Note: not exercised by the suite — claude requires interactive auth in
+# this session. Provided as a schema demonstration.
+
+nodes:
+  - id: plan
+    run: |
+      claude -p "You are planning a feature. Output a numbered list of concrete implementation tasks, no preamble.
+
+      Feature request: {{ ARGUMENTS }}"
+
+  - id: implement
+    depends_on: [plan]
+    run: |
+      opencode run "Implement the following plan in the current repository. Make the file edits but DO NOT commit them — leave the changes in the working tree. Finally summarize what you did.
+
+      Plan:
+      {{ plan.output }}"
+
+  - id: validate
+    depends_on: [implement]
+    run: |
+      claude -p "Verify the uncommitted changes match the plan. Run \`git diff\` (and \`git status\` for any new files) to inspect the working-tree changes. Output PASS or FAIL on the first line, followed by a one-paragraph justification.
+
+      Plan:
+      {{ plan.output }}
+
+      Implementation summary:
+      {{ implement.output }}"
+
+  - id: build
+    depends_on: [validate]
+    run: |
+      opencode run "Try to build the project. Detect the right build command from the repo (e.g. \`pnpm build\`, \`npm run build\`, \`cargo build\`, \`go build ./...\`). Run it. If it fails, read the errors, fix them in place, and retry. Iterate up to 5 attempts. Output a one-line summary on the final line: either \`BUILD OK\` or \`BUILD FAILED: <reason>\`.
+
+      Prior validation result:
+      {{ validate.output }}"

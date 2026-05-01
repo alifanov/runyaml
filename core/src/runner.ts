@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+import type { Tracer } from './tracer.ts';
 
 export type Node = {
   id: string;
@@ -12,22 +13,60 @@ export type Pipeline = {
 
 export type RunOptions = {
   globals?: Record<string, string>;
+  tracer?: Tracer;
+  pipelinePath?: string;
 };
 
-export function run(pipeline: Pipeline, options: RunOptions = {}): void {
+export async function run(pipeline: Pipeline, options: RunOptions = {}): Promise<void> {
   const globals = options.globals ?? {};
   const ordered = topoSort(pipeline.nodes ?? []);
   const outputs = new Map<string, string>();
 
-  for (const node of ordered) {
-    if (node.run === undefined) continue;
-    const cmd = interpolate(node.run, outputs, globals);
-    const stdout = execSync(cmd, {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'inherit'],
-    });
-    outputs.set(node.id, stdout.replace(/\r?\n$/, ''));
-    process.stdout.write(stdout);
+  const runId = options.tracer
+    ? await options.tracer.startRun(pipeline, {
+        pipelinePath: options.pipelinePath ?? '',
+        message: globals.ARGUMENTS ?? '',
+      })
+    : null;
+
+  try {
+    for (const node of ordered) {
+      if (node.run === undefined) continue;
+
+      if (options.tracer && runId) {
+        await options.tracer.startNode(runId, node.id);
+      }
+
+      let stdout = '';
+      try {
+        const cmd = interpolate(node.run, outputs, globals);
+        stdout = execSync(cmd, {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'inherit'],
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (options.tracer && runId) {
+          await options.tracer.finishNode(runId, node.id, { error: message });
+          await options.tracer.finishRun(runId, { error: message });
+        }
+        throw err;
+      }
+
+      const captured = stdout.replace(/\r?\n$/, '');
+      outputs.set(node.id, captured);
+      process.stdout.write(stdout);
+
+      if (options.tracer && runId) {
+        await options.tracer.finishNode(runId, node.id, { output: captured });
+      }
+    }
+
+    if (options.tracer && runId) {
+      await options.tracer.finishRun(runId, {});
+    }
+  } catch (err) {
+    throw err;
   }
 }
 

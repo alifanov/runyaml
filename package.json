@@ -2,17 +2,12 @@
   "name": "runyaml",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "runyaml": "tsx core/src/cli.ts",
-    "typecheck": "tsc --noEmit"
+    "runyaml": "pnpm --filter @runyaml/core run cli",
+    "typecheck": "pnpm -r run typecheck",
+    "web:up": "docker compose -f web/docker-compose.yml up --build",
+    "web:down": "docker compose -f web/docker-compose.yml down",
+    "web:logs": "docker compose -f web/docker-compose.yml logs -f"
   },
-  "dependencies": {
-    "yaml": "^2.6.0"
-  },
-  "devDependencies": {
-    "@types/node": "^22.10.0",
-    "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
-  }
+  "packageManager": "pnpm@9.15.0"
 }
