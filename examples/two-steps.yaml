@@ -1,0 +1,6 @@
+steps:
+  - id: first
+    print: Hello
+  - id: second
+    dependsOn: [first]
+    print: World

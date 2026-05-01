@@ -1,2 +1,3 @@
 steps:
-  - print: Hello World
+  - id: hello
+    print: Hello World
