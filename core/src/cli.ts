@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync, readdirSync, copyFileSync, statSync } from 'node:fs';
 import { resolve, dirname, join, basename } from 'node:path';
+import { homedir } from 'node:os';
 import { parse } from 'yaml';
 import { run, type Pipeline } from './runner.js';
 import { createHttpTracer } from './tracer.js';
@@ -186,22 +187,96 @@ if (argv[0] === 'init') {
   process.exit(0);
 }
 
+if (argv[0] === 'share') {
+  shareWorkflow(argv[1]);
+  process.exit(0);
+}
+
+if (argv[0] === 'list' || argv[0] === 'ls') {
+  listWorkflows();
+  process.exit(0);
+}
+
 // Default subcommand: run a workflow.
 // Both `runyaml <path>` and `runyaml run <path>` are accepted.
 const runArgs = argv[0] === 'run' ? argv.slice(1) : argv;
 runWorkflow(runArgs);
 
+function globalDir(): string {
+  return join(homedir(), '.runyaml');
+}
+
+function localDir(): string {
+  return resolve(process.cwd(), '.runyaml');
+}
+
 function printUsage(): void {
   process.stderr.write(
     [
       'usage:',
-      '  runyaml init                      Create .runyaml/ in the current directory',
-      '  runyaml [run] <path-to-yaml> [message]   Execute a workflow',
+      '  runyaml init                              Create .runyaml/ in the current directory',
+      '  runyaml share <path-to-yaml>              Copy a workflow to ~/.runyaml/ (sharable across projects)',
+      '  runyaml list                              List workflows (global + local). Alias: ls',
+      '  runyaml [run] <path-to-yaml> [message]    Execute a workflow',
       '',
       'Requires RUNYAML_DASHBOARD_URL in env or in a .env walked up from cwd.',
       '',
     ].join('\n'),
   );
+}
+
+function shareWorkflow(arg: string | undefined): void {
+  if (!arg) {
+    process.stderr.write('usage: runyaml share <path-to-yaml>\n');
+    process.exit(1);
+  }
+  const src = resolve(process.cwd(), arg);
+  if (!existsSync(src) || !statSync(src).isFile()) {
+    process.stderr.write(`not a file: ${src}\n`);
+    process.exit(1);
+  }
+  const target = globalDir();
+  if (!existsSync(target)) mkdirSync(target, { recursive: true });
+  const dest = join(target, basename(src));
+  if (existsSync(dest)) {
+    process.stderr.write(`already exists: ${dest}\nremove it first if you want to replace.\n`);
+    process.exit(1);
+  }
+  copyFileSync(src, dest);
+  process.stdout.write(`Shared ${src}\n     → ${dest}\n\nRun it from any project with:\n  runyaml ${dest}\n`);
+}
+
+function listWorkflows(): void {
+  const sections: { label: string; dir: string }[] = [
+    { label: 'Global (~/.runyaml/)', dir: globalDir() },
+    { label: `Local (${localDir()})`, dir: localDir() },
+  ];
+
+  let any = false;
+  for (const { label, dir } of sections) {
+    process.stdout.write(`\n${label}\n`);
+    if (!existsSync(dir)) {
+      process.stdout.write(`  (no directory)\n`);
+      continue;
+    }
+    const entries = readdirSync(dir)
+      .filter((f) => f.endsWith('.yaml') || f.endsWith('.yml'))
+      .sort();
+    if (entries.length === 0) {
+      process.stdout.write(`  (empty)\n`);
+      continue;
+    }
+    for (const f of entries) {
+      const full = join(dir, f);
+      const size = statSync(full).size;
+      process.stdout.write(`  ${f.padEnd(40)} ${size} bytes  ${full}\n`);
+      any = true;
+    }
+  }
+  if (!any) {
+    process.stdout.write(`\n(no workflows yet — try \`runyaml init\` or \`runyaml share <path>\`)\n`);
+  }
+  process.stdout.write('\n');
 }
 
 function initWorkspace(): void {
