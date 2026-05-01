@@ -1,6 +1,6 @@
 {
   "name": "runyaml",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "description": "Run YAML-defined DAG workflows from the CLI with a debug dashboard",
   "type": "module",

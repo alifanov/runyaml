@@ -31,10 +31,17 @@ export async function run(pipeline: Pipeline, options: RunOptions = {}): Promise
       })
     : null;
 
+  const total = ordered.filter((n) => n.run !== undefined).length;
+  let idx = 0;
+
   let runError: Error | undefined;
   try {
     for (const node of ordered) {
       if (node.run === undefined) continue;
+
+      idx += 1;
+      const startedAt = Date.now();
+      process.stderr.write(`\x1b[36m▶\x1b[0m [${idx}/${total}] \x1b[1m${node.id}\x1b[0m\n`);
 
       if (options.tracer && runId) {
         await safeTrace(() => options.tracer!.startNode(runId, node.id));
@@ -49,6 +56,8 @@ export async function run(pipeline: Pipeline, options: RunOptions = {}): Promise
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        const ms = Date.now() - startedAt;
+        process.stderr.write(`\x1b[31m✗\x1b[0m [${idx}/${total}] ${node.id} (${ms}ms)\n`);
         if (options.tracer && runId) {
           await safeTrace(() => options.tracer!.finishNode(runId, node.id, { error: message }));
         }
@@ -58,6 +67,9 @@ export async function run(pipeline: Pipeline, options: RunOptions = {}): Promise
       const captured = stdout.replace(/\r?\n$/, '');
       outputs.set(node.id, captured);
       process.stdout.write(stdout);
+
+      const ms = Date.now() - startedAt;
+      process.stderr.write(`\x1b[32m✓\x1b[0m [${idx}/${total}] ${node.id} (${ms}ms)\n`);
 
       if (options.tracer && runId) {
         await safeTrace(() => options.tracer!.finishNode(runId, node.id, { output: captured }));
