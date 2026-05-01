@@ -9,6 +9,7 @@ export default async function HomePage() {
     take: 100,
     select: {
       id: true,
+      project: true,
       pipelinePath: true,
       message: true,
       status: true,
@@ -31,6 +32,7 @@ export default async function HomePage() {
       <thead>
         <tr>
           <th>When</th>
+          <th>Project</th>
           <th>Pipeline</th>
           <th>Message</th>
           <th>Status</th>
@@ -42,6 +44,13 @@ export default async function HomePage() {
           <tr key={r.id}>
             <td>
               <Link href={`/runs/${r.id}`}>{formatTime(r.startedAt)}</Link>
+            </td>
+            <td>
+              {r.project ? (
+                <span className="project-tag">{r.project}</span>
+              ) : (
+                <span className="subtle">—</span>
+              )}
             </td>
             <td>
               <code>{trimPath(r.pipelinePath)}</code>

@@ -22,6 +22,7 @@ enum NodeStatus {
 
 model WorkflowRun {
   id           String     @id @default(cuid())
+  project      String     @default("")
   pipelinePath String
   pipeline     Json
   message      String     @default("")
@@ -33,6 +34,7 @@ model WorkflowRun {
   createdAt    DateTime   @default(now())
 
   @@index([startedAt])
+  @@index([project])
 }
 
 model NodeRun {

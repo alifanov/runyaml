@@ -1,7 +1,10 @@
-import type { Pipeline } from './runner.ts';
+import type { Pipeline } from './runner.js';
 
 export type Tracer = {
-  startRun(pipeline: Pipeline, context: { pipelinePath: string; message: string }): Promise<string>;
+  startRun(
+    pipeline: Pipeline,
+    context: { pipelinePath: string; message: string; project: string },
+  ): Promise<string>;
   startNode(runId: string, nodeId: string): Promise<void>;
   finishNode(
     runId: string,

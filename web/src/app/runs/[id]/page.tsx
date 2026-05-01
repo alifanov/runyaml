@@ -98,6 +98,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
       <div className="run-header">
         <div>
           <h1 style={{ margin: 0, fontSize: 18 }}>
+            {run.project && <span className="project-tag" style={{ marginRight: 8 }}>{run.project}</span>}
             <code>{trimPath(run.pipelinePath)}</code>{' '}
             <span className={`status-pill status-${run.status}`}>{run.status}</span>
           </h1>

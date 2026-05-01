@@ -6,6 +6,7 @@ export async function POST(req: Request) {
     pipelinePath?: string;
     pipeline?: unknown;
     message?: string;
+    project?: string;
   };
 
   if (!body.pipelinePath || !body.pipeline) {
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
       pipelinePath: body.pipelinePath,
       pipeline: body.pipeline as object,
       message: body.message ?? '',
+      project: body.project ?? '',
     },
     select: { id: true },
   });

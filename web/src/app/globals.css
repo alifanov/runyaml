@@ -74,6 +74,17 @@ a:hover { text-decoration: underline; }
   border-radius: 8px;
 }
 
+.project-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
 .status-pill {
   display: inline-block;
   padding: 2px 8px;

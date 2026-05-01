@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import type { Tracer } from './tracer.ts';
+import type { Tracer } from './tracer.js';
 
 export type Node = {
   id: string;
@@ -15,6 +15,7 @@ export type RunOptions = {
   globals?: Record<string, string>;
   tracer?: Tracer;
   pipelinePath?: string;
+  project?: string;
 };
 
 export async function run(pipeline: Pipeline, options: RunOptions = {}): Promise<void> {
@@ -26,6 +27,7 @@ export async function run(pipeline: Pipeline, options: RunOptions = {}): Promise
     ? await options.tracer.startRun(pipeline, {
         pipelinePath: options.pipelinePath ?? '',
         message: globals.ARGUMENTS ?? '',
+        project: options.project ?? '',
       })
     : null;
 
