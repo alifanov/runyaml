@@ -1,7 +1,9 @@
+import { execSync } from 'node:child_process';
+
 export type Step = {
   id: string;
   dependsOn?: string[];
-  print?: string;
+  run?: string;
 };
 
 export type Pipeline = {
@@ -10,11 +12,28 @@ export type Pipeline = {
 
 export function run(pipeline: Pipeline): void {
   const ordered = topoSort(pipeline.steps ?? []);
+  const outputs = new Map<string, string>();
+
   for (const step of ordered) {
-    if (step.print !== undefined) {
-      console.log(step.print);
-    }
+    if (step.run === undefined) continue;
+    const cmd = interpolate(step.run, outputs);
+    const stdout = execSync(cmd, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'inherit'],
+    });
+    outputs.set(step.id, stdout.replace(/\r?\n$/, ''));
+    process.stdout.write(stdout);
   }
+}
+
+function interpolate(template: string, outputs: Map<string, string>): string {
+  return template.replace(/\{\{\s*([\w-]+)\s*\}\}/g, (_, id: string) => {
+    const value = outputs.get(id);
+    if (value === undefined) {
+      throw new Error(`reference to unknown or not-yet-run step: "${id}"`);
+    }
+    return value;
+  });
 }
 
 function topoSort(steps: Step[]): Step[] {

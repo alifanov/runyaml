@@ -1,6 +1,6 @@
 steps:
-  - id: first
-    print: Hello
-  - id: second
-    dependsOn: [first]
-    print: World
+  - id: greet
+    run: echo "Hello"
+  - id: shout
+    dependsOn: [greet]
+    run: echo "{{ greet }} World"
