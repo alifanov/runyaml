@@ -29,12 +29,13 @@ export async function run(pipeline: Pipeline, options: RunOptions = {}): Promise
       })
     : null;
 
+  let runError: Error | undefined;
   try {
     for (const node of ordered) {
       if (node.run === undefined) continue;
 
       if (options.tracer && runId) {
-        await options.tracer.startNode(runId, node.id);
+        await safeTrace(() => options.tracer!.startNode(runId, node.id));
       }
 
       let stdout = '';
@@ -47,8 +48,7 @@ export async function run(pipeline: Pipeline, options: RunOptions = {}): Promise
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         if (options.tracer && runId) {
-          await options.tracer.finishNode(runId, node.id, { error: message });
-          await options.tracer.finishRun(runId, { error: message });
+          await safeTrace(() => options.tracer!.finishNode(runId, node.id, { error: message }));
         }
         throw err;
       }
@@ -58,15 +58,32 @@ export async function run(pipeline: Pipeline, options: RunOptions = {}): Promise
       process.stdout.write(stdout);
 
       if (options.tracer && runId) {
-        await options.tracer.finishNode(runId, node.id, { output: captured });
+        await safeTrace(() => options.tracer!.finishNode(runId, node.id, { output: captured }));
       }
     }
-
-    if (options.tracer && runId) {
-      await options.tracer.finishRun(runId, {});
-    }
   } catch (err) {
-    throw err;
+    runError = err instanceof Error ? err : new Error(String(err));
+  } finally {
+    // Always close out the run — never leave it stuck on "running",
+    // even if a previous tracer call or the workflow itself threw.
+    if (options.tracer && runId) {
+      await safeTrace(() =>
+        options.tracer!.finishRun(runId, runError ? { error: runError.message } : {}),
+      );
+    }
+  }
+
+  if (runError) throw runError;
+}
+
+async function safeTrace(fn: () => Promise<unknown>): Promise<void> {
+  try {
+    await fn();
+  } catch (err) {
+    // Tracer failures are logged but never abort the workflow or mask the
+    // underlying execution error.
+    const message = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`[runyaml] tracer error: ${message}\n`);
   }
 }
 
