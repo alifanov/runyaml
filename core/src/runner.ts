@@ -112,15 +112,28 @@ function interpolate(
       if (value === undefined) {
         throw new Error(`reference to unknown or not-yet-run node: "${id}"`);
       }
-      return value;
+      return escapeForDoubleQuotes(value);
     })
     .replace(/\{\{\s*([\w-]+)\s*\}\}/g, (_, name: string) => {
       const value = globals[name];
       if (value === undefined) {
         throw new Error(`reference to unknown variable: "${name}"`);
       }
-      return value;
+      return escapeForDoubleQuotes(value);
     });
+}
+
+// Escape a value so it can be safely interpolated inside a double-quoted
+// shell string. Inside "..." the shell still expands $, `, \, and ".
+// Workflows authored in this repo all wrap {{ }} in "..." (see AGENTS.md),
+// so this prevents command substitution / variable expansion / quote-break
+// from arbitrary AI-generated outputs.
+function escapeForDoubleQuotes(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\$/g, '\\$')
+    .replace(/`/g, '\\`');
 }
 
 function topoSort(nodes: Node[]): Node[] {

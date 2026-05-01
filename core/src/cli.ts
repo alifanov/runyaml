@@ -77,10 +77,19 @@ Two forms, evaluated in this order:
    Both resolve to the same string. Empty if no message was passed.
 
 Substitution happens on the raw \`run:\` string before it is handed to
-the shell. Values are inserted verbatim — there is **no automatic shell
-quoting**. If a node's output may contain quotes or special characters,
-either constrain the upstream prompt to produce a safe value, or pipe
-through a sanitizer.
+the shell. Substituted values are **escaped for double-quoted context**:
+\`\\\`, \`"\`, \`$\`, and \`\\\`\` are backslash-escaped so an AI-generated
+value containing backticks, dollars, or quotes cannot break out of a
+\`"..."\` wrapper or trigger command substitution.
+
+This means the safe pattern is:
+
+\`\`\`yaml
+run: some-cmd "{{ id.output }}"        # ✅ value is escaped for "..."
+\`\`\`
+
+If you splice \`{{ ... }}\` outside any quotes, word-splitting and glob
+expansion still apply — wrap it.
 
 Unknown ids in \`{{ ... }}\` raise an error and abort the run.
 
