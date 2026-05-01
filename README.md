@@ -56,10 +56,12 @@ This drops two files inside `.runyaml/`:
 - `hello.yaml` — a minimal two-node sample.
 - `AGENTS.md` — the schema + authoring guide written for an LLM. Cat it into your coding agent's context whenever you ask it to draft a workflow.
 
-Run a workflow:
+Run a workflow — by name, relative path, or absolute path:
 
 ```bash
-runyaml .runyaml/hello.yaml world
+runyaml hello world                          # bare name, looked up in ~/.runyaml/ then ./.runyaml/
+runyaml .runyaml/hello.yaml world            # relative path
+runyaml /Users/me/.runyaml/hello.yaml world  # absolute path
 ```
 
 Output:
@@ -74,6 +76,28 @@ Hello, world!
 ```
 
 Open the dashboard — the run is there, tagged with the current directory's basename as **project**, with two tabs: **Tracing** (per-node command, captured stdout, duration, errors) and **Graph** (DAG laid out left-to-right).
+
+`runyaml init` is idempotent — running it again refreshes `hello.yaml` and `AGENTS.md` so you always get the latest sample/docs after upgrading.
+
+## Sharing workflows across projects
+
+Once a workflow is dialed in, lift it out of one project so every other project can use it:
+
+```bash
+runyaml share .runyaml/feature-pipeline.yaml
+# → copied to ~/.runyaml/feature-pipeline.yaml
+
+# from any other project:
+runyaml feature-pipeline "Add dark mode"
+```
+
+`~/.runyaml/` is the global workflow directory. Bare-name lookup checks it first, then falls back to the project's `./.runyaml/`. To see what's available:
+
+```bash
+runyaml list
+```
+
+Lists global workflows first, then project-local ones, with sizes and absolute paths.
 
 ## Workflow YAML
 

@@ -37,14 +37,31 @@ or modify a workflow. Read it end-to-end before editing or generating YAML.
 ## CLI
 
 \`\`\`
-runyaml init                       # create .runyaml/ in cwd with a sample
-runyaml <path-to-yaml> [message]   # execute a workflow
-runyaml run <path-to-yaml> [message]  # same, explicit form
+runyaml init                          # create/refresh .runyaml/ in cwd (idempotent)
+runyaml share <path-to-yaml>          # copy a workflow to ~/.runyaml/ to share globally
+runyaml list                          # list workflows (global first, then local). Alias: ls
+runyaml [run] <name|path> [message]   # execute a workflow
 \`\`\`
+
+### Workflow lookup
+
+The argument to \`run\` is resolved in this order:
+
+1. **Absolute path** (\`/path/to/x.yaml\`) — used as-is.
+2. **Relative path** (anything containing \`/\`) — resolved against cwd.
+3. **Bare name** (\`hello\`, \`hello.yaml\`) — searched in this order:
+   1. \`~/.runyaml/\` — global, shared across projects.
+   2. \`./.runyaml/\` — project-local.
+
+If no extension is given, \`.yaml\` then \`.yml\` are tried.
+
+### Message argument
 
 The optional positional \`message\` is exposed inside the workflow as
 \`{{ ARGUMENTS }}\` (alias \`{{ USER_MESSAGE }}\`). Use it to pass the
 user's intent — feature request, bug description, etc.
+
+### Dashboard
 
 \`runyaml\` requires \`RUNYAML_DASHBOARD_URL\` to be set, either in the
 environment or in a \`.env\` file walked up from the cwd. Without it the
@@ -210,6 +227,46 @@ function localDir(): string {
   return resolve(process.cwd(), '.runyaml');
 }
 
+function resolveWorkflowPath(arg: string, cwd: string): string {
+  // 1. Absolute path
+  if (arg.startsWith('/')) {
+    if (!existsSync(arg)) {
+      process.stderr.write(`workflow not found: ${arg}\n`);
+      process.exit(1);
+    }
+    return arg;
+  }
+
+  // 2. Anything containing a path separator → relative path from cwd
+  if (arg.includes('/')) {
+    const p = resolve(cwd, arg);
+    if (!existsSync(p)) {
+      process.stderr.write(`workflow not found: ${p}\n`);
+      process.exit(1);
+    }
+    return p;
+  }
+
+  // 3. Bare name → search ~/.runyaml/ first, then ./.runyaml/.
+  // Auto-append .yaml/.yml if no extension was given.
+  const hasExt = /\.(ya?ml)$/i.test(arg);
+  const names = hasExt ? [arg] : [arg + '.yaml', arg + '.yml', arg];
+  const dirs = [
+    { label: 'global', path: globalDir() },
+    { label: 'local', path: resolve(cwd, '.runyaml') },
+  ];
+  for (const d of dirs) {
+    for (const n of names) {
+      const p = join(d.path, n);
+      if (existsSync(p)) return p;
+    }
+  }
+  process.stderr.write(
+    `workflow not found by name "${arg}".\nlooked in: ${dirs.map((d) => d.path).join(', ')}\nrun \`runyaml list\` to see available workflows.\n`,
+  );
+  process.exit(1);
+}
+
 function printUsage(): void {
   process.stderr.write(
     [
@@ -217,7 +274,8 @@ function printUsage(): void {
       '  runyaml init                              Create .runyaml/ in the current directory',
       '  runyaml share <path-to-yaml>              Copy a workflow to ~/.runyaml/ (sharable across projects)',
       '  runyaml list                              List workflows (global + local). Alias: ls',
-      '  runyaml [run] <path-to-yaml> [message]    Execute a workflow',
+      '  runyaml [run] <name|path> [message]       Execute a workflow',
+      '                                            Resolves: absolute path → relative path → name in ~/.runyaml/ → name in ./.runyaml/',
       '',
       'Requires RUNYAML_DASHBOARD_URL in env or in a .env walked up from cwd.',
       '',
@@ -281,21 +339,18 @@ function listWorkflows(): void {
 
 function initWorkspace(): void {
   const dir = resolve(process.cwd(), '.runyaml');
-  if (existsSync(dir)) {
-    process.stderr.write(`.runyaml/ already exists at ${dir}\n`);
-    process.exit(1);
-  }
+  const reused = existsSync(dir);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'hello.yaml'), SAMPLE_WORKFLOW);
   writeFileSync(join(dir, 'AGENTS.md'), AGENTS_MD);
   process.stdout.write(
     [
-      `Created ${dir}`,
+      `${reused ? 'Refreshed' : 'Created'} ${dir}`,
       `  · hello.yaml — sample workflow`,
       `  · AGENTS.md  — context for AI agents (feed this to your coding agent)`,
       ``,
       `Run it with:`,
-      `  runyaml .runyaml/hello.yaml`,
+      `  runyaml hello`,
       ``,
     ].join('\n'),
   );
@@ -321,7 +376,7 @@ function runWorkflow(args: string[]): void {
   }
 
   const userCwd = process.env.INIT_CWD ?? process.cwd();
-  const pipelinePath = resolve(userCwd, file);
+  const pipelinePath = resolveWorkflowPath(file, userCwd);
   const project = basename(userCwd);
   const pipeline = parse(readFileSync(pipelinePath, 'utf8')) as Pipeline;
   const tracer = createHttpTracer(dashboardUrl);
