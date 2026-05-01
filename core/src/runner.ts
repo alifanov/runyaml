@@ -10,13 +10,18 @@ export type Pipeline = {
   nodes?: Node[];
 };
 
-export function run(pipeline: Pipeline): void {
+export type RunOptions = {
+  globals?: Record<string, string>;
+};
+
+export function run(pipeline: Pipeline, options: RunOptions = {}): void {
+  const globals = options.globals ?? {};
   const ordered = topoSort(pipeline.nodes ?? []);
   const outputs = new Map<string, string>();
 
   for (const node of ordered) {
     if (node.run === undefined) continue;
-    const cmd = interpolate(node.run, outputs);
+    const cmd = interpolate(node.run, outputs, globals);
     const stdout = execSync(cmd, {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'inherit'],
@@ -26,14 +31,26 @@ export function run(pipeline: Pipeline): void {
   }
 }
 
-function interpolate(template: string, outputs: Map<string, string>): string {
-  return template.replace(/\{\{\s*([\w-]+)\.output\s*\}\}/g, (_, id: string) => {
-    const value = outputs.get(id);
-    if (value === undefined) {
-      throw new Error(`reference to unknown or not-yet-run node: "${id}"`);
-    }
-    return value;
-  });
+function interpolate(
+  template: string,
+  outputs: Map<string, string>,
+  globals: Record<string, string>,
+): string {
+  return template
+    .replace(/\{\{\s*([\w-]+)\.output\s*\}\}/g, (_, id: string) => {
+      const value = outputs.get(id);
+      if (value === undefined) {
+        throw new Error(`reference to unknown or not-yet-run node: "${id}"`);
+      }
+      return value;
+    })
+    .replace(/\{\{\s*([\w-]+)\s*\}\}/g, (_, name: string) => {
+      const value = globals[name];
+      if (value === undefined) {
+        throw new Error(`reference to unknown variable: "${name}"`);
+      }
+      return value;
+    });
 }
 
 function topoSort(nodes: Node[]): Node[] {

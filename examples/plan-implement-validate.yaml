@@ -1,0 +1,36 @@
+# plan → implement → validate
+#
+# Typical "build a feature" workflow. The CLI message is passed as
+# {{ ARGUMENTS }} into the plan step.
+#
+# Run:
+#   pnpm runyaml examples/plan-implement-validate.yaml "Add dark mode to the settings page"
+#
+# Note: not exercised by the suite — claude requires interactive auth in
+# this session. Provided as a schema demonstration.
+
+nodes:
+  - id: plan
+    run: |
+      claude -p "You are planning a feature. Output a numbered list of concrete implementation tasks, no preamble.
+
+      Feature request: {{ ARGUMENTS }}"
+
+  - id: implement
+    depends_on: [plan]
+    run: |
+      opencode run "Implement the following plan in the current repository. Make the file edits but DO NOT commit them — leave the changes in the working tree. Finally summarize what you did.
+
+      Plan:
+      {{ plan.output }}"
+
+  - id: validate
+    depends_on: [implement]
+    run: |
+      claude -p "Verify the uncommitted changes match the plan. Run \`git diff\` (and \`git status\` for any new files) to inspect the working-tree changes. Output PASS or FAIL on the first line, followed by a one-paragraph justification.
+
+      Plan:
+      {{ plan.output }}
+
+      Implementation summary:
+      {{ implement.output }}"
