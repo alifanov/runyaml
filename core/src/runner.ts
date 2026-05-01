@@ -1,69 +1,69 @@
 import { execSync } from 'node:child_process';
 
-export type Step = {
+export type Node = {
   id: string;
-  dependsOn?: string[];
+  depends_on?: string[];
   run?: string;
 };
 
 export type Pipeline = {
-  steps?: Step[];
+  nodes?: Node[];
 };
 
 export function run(pipeline: Pipeline): void {
-  const ordered = topoSort(pipeline.steps ?? []);
+  const ordered = topoSort(pipeline.nodes ?? []);
   const outputs = new Map<string, string>();
 
-  for (const step of ordered) {
-    if (step.run === undefined) continue;
-    const cmd = interpolate(step.run, outputs);
+  for (const node of ordered) {
+    if (node.run === undefined) continue;
+    const cmd = interpolate(node.run, outputs);
     const stdout = execSync(cmd, {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'inherit'],
     });
-    outputs.set(step.id, stdout.replace(/\r?\n$/, ''));
+    outputs.set(node.id, stdout.replace(/\r?\n$/, ''));
     process.stdout.write(stdout);
   }
 }
 
 function interpolate(template: string, outputs: Map<string, string>): string {
-  return template.replace(/\{\{\s*([\w-]+)\s*\}\}/g, (_, id: string) => {
+  return template.replace(/\{\{\s*([\w-]+)\.output\s*\}\}/g, (_, id: string) => {
     const value = outputs.get(id);
     if (value === undefined) {
-      throw new Error(`reference to unknown or not-yet-run step: "${id}"`);
+      throw new Error(`reference to unknown or not-yet-run node: "${id}"`);
     }
     return value;
   });
 }
 
-function topoSort(steps: Step[]): Step[] {
-  const byId = new Map<string, Step>();
-  for (const step of steps) {
-    if (byId.has(step.id)) {
-      throw new Error(`duplicate step id: ${step.id}`);
+function topoSort(nodes: Node[]): Node[] {
+  const byId = new Map<string, Node>();
+  for (const node of nodes) {
+    if (byId.has(node.id)) {
+      throw new Error(`duplicate node id: ${node.id}`);
     }
-    byId.set(step.id, step);
+    byId.set(node.id, node);
   }
 
   const remaining = new Map<string, Set<string>>();
-  for (const step of steps) {
-    const deps = new Set(step.dependsOn ?? []);
+  for (const node of nodes) {
+    const deps = new Set(node.depends_on ?? []);
     for (const dep of deps) {
       if (!byId.has(dep)) {
-        throw new Error(`step "${step.id}" depends on unknown step "${dep}"`);
+        throw new Error(`node "${node.id}" depends on unknown node "${dep}"`);
       }
     }
-    remaining.set(step.id, deps);
+    remaining.set(node.id, deps);
   }
 
-  const result: Step[] = [];
+  const result: Node[] = [];
   while (remaining.size > 0) {
     const ready = [...remaining.entries()]
       .filter(([, deps]) => deps.size === 0)
       .map(([id]) => id);
 
     if (ready.length === 0) {
-      throw new Error(`cycle detected among steps: ${[...remaining.keys()].join(', ')}`);
+      throw new Error(`cycle detected among nodes: ${[...remaining.keys()].join(', ')}`);
     }
 
     for (const id of ready) {

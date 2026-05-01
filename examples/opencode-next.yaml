@@ -1,6 +1,6 @@
-steps:
+nodes:
   - id: seed
     run: echo "5"
   - id: next
-    dependsOn: [seed]
-    run: opencode run "Return only the integer that comes right after {{ seed }}. Output just the number, nothing else."
+    depends_on: [seed]
+    run: opencode run "Return only the integer that comes right after {{ seed.output }}. Output just the number, nothing else."

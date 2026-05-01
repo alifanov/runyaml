@@ -1,0 +1,6 @@
+steps:
+  - id: seed
+    run: echo "5"
+  - id: next
+    dependsOn: [seed]
+    run: claude -p "Return only the integer that comes right after {{ seed }}. Output just the number, nothing else."

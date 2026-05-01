@@ -1,6 +1,6 @@
-steps:
+nodes:
   - id: greet
     run: echo "Hello"
   - id: shout
-    dependsOn: [greet]
-    run: echo "{{ greet }} World"
+    depends_on: [greet]
+    run: echo "{{ greet.output }} World"
