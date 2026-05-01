@@ -161,13 +161,41 @@ a:hover { text-decoration: underline; }
   border-radius: 8px;
   overflow: hidden;
 }
+/* Hide native disclosure triangle; use a custom one in ::before */
+.node-card > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+.node-card > summary::-webkit-details-marker { display: none; }
 .node-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
+  padding: 10px 14px 10px 36px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.node-card-header::before {
+  content: '▼';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.12s ease;
+}
+.node-card:not([open]) > summary > .node-card-header::before {
+  transform: translateY(-50%) rotate(-90deg);
+}
+.node-card > summary:hover .node-card-header::before {
+  color: var(--text);
+}
+.node-card:not([open]) > summary > .node-card-header {
+  border-bottom: none;
 }
 .node-id { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .node-section {

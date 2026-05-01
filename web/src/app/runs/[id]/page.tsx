@@ -33,8 +33,8 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         const outputBytes = new TextEncoder().encode(output).length;
         const outputLines = output ? output.split('\n').length : 0;
         return (
-          <div key={pn.id} className="node-card">
-            <div className="node-card-header">
+          <details key={pn.id} className="node-card" open>
+            <summary className="node-card-header">
               <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
                 <span className="subtle" style={{ fontSize: 11 }}>#{idx + 1}</span>
                 <span className="node-id">{pn.id}</span>
@@ -48,7 +48,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
                 {duration && <span className="subtle" style={{ fontSize: 11 }}>{duration}</span>}
                 <span className={`status-pill status-${status}`}>{status}</span>
               </div>
-            </div>
+            </summary>
 
             {pn.run && (
               <div className="node-section">
@@ -81,7 +81,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
                 <pre className="node-error">{nr.error}</pre>
               </div>
             )}
-          </div>
+          </details>
         );
       })}
     </div>
