@@ -2,6 +2,7 @@
   "name": "runyaml",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "runyaml": "pnpm --filter @runyaml/core run cli",
     "typecheck": "pnpm -r run typecheck",
