@@ -11,18 +11,18 @@
     "db:generate": "prisma generate"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^1.1.4",
-    "@prisma/client": "^6.1.0",
-    "@xyflow/react": "^12.3.5",
-    "next": "^15.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@dagrejs/dagre": "^3.1.1",
+    "@prisma/client": "^7.9.1",
+    "@xyflow/react": "^12.11.2",
+    "next": "^16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "prisma": "^6.1.0",
-    "typescript": "^5.7.0"
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "prisma": "^7.9.1",
+    "typescript": "^7.0.2"
   }
 }
