@@ -31,7 +31,8 @@ services:
     command:
       - sh
       - -c
-      - "node node_modules/prisma/build/index.js db push --skip-generate && pnpm start"
+      # ponytail: prisma 7 dropped --skip-generate; db push no longer generates anyway
+      - "node node_modules/prisma/build/index.js db push && pnpm start"
 
 volumes:
   db-data:
