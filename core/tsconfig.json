@@ -7,6 +7,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    // ponytail: tsc 7 no longer auto-picks up @types/node here; naming it is enough
+    "types": ["node"],
     "noEmit": true
   },
   "include": ["src/**/*.ts"]
