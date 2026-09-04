@@ -14,13 +14,13 @@
     "@dagrejs/dagre": "^3.1.1",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
-    "@xyflow/react": "^12.11.4",
-    "next": "^16.3.3",
+    "@xyflow/react": "^12.11.6",
+    "next": "^16.3.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@types/node": "^26.3.0",
+    "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "prisma": "^7.10.0",
