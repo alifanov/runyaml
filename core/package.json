@@ -23,11 +23,11 @@
     "node": ">=20"
   },
   "dependencies": {
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "@types/node": "^26.3.0",
-    "tsx": "^4.23.12",
+    "@types/node": "^26.5.1",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }
 }
